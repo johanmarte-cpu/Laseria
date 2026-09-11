@@ -1,6 +1,14 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { authConfig } from "@/auth.config";
 import { isStaffRole, canAccess, staffHomeRoute, type Section } from "@/lib/roles";
+
+// Deliberately built from the lightweight `authConfig` (no providers, no
+// bcrypt/Prisma) rather than importing the full `auth` from "@/auth" — see
+// the comment in src/auth.config.ts for why. This `auth` wrapper only needs
+// to decode the existing JWT session cookie, which the session/jwt callbacks
+// (both DB-free) already handle.
+const { auth } = NextAuth(authConfig);
 
 // Longest-prefix match from pathname to the permission section it belongs to.
 const SECTION_ROUTES: [string, Section][] = [
