@@ -1,6 +1,7 @@
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 export function Hero() {
   return (
@@ -30,6 +31,7 @@ export function Hero() {
             <ButtonLink href="/tratamientos" variant="secondary" size="lg">
               Ver tratamientos
             </ButtonLink>
+            <InstallAppButton />
           </div>
 
           <div className="mt-10 flex items-center gap-2 text-sm text-ink-muted">

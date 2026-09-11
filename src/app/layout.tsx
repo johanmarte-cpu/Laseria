@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -38,6 +39,15 @@ export const metadata: Metadata = {
     locale: "es_DO",
     type: "website",
   },
+  appleWebApp: {
+    capable: true,
+    title: "Lasería",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#171717",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -49,6 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${cormorant.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white text-ink">
+        <ServiceWorkerRegister />
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

@@ -99,6 +99,13 @@ Si una clienta reserva sin haber iniciado sesión, el sistema crea automáticame
 - **Reporte por correo**: al cerrar, se envía un email (vía [Resend](https://resend.com), `src/lib/email.ts`) con el detalle del turno — total facturado, desglose por método de pago, arqueo de efectivo y el listado de ventas — al correo configurado en `CASH_REPORT_EMAIL`. Requiere `RESEND_API_KEY` en `.env` (ver `.env.example`); **si no está configurada, la caja se cierra igual** y el reporte queda marcado como "no se pudo enviar" en pantalla y en la base de datos (`CashSession.reportEmailStatus`), sin bloquear el cierre.
 - Cada cajero solo ve/gestiona sus propias cajas en el historial; admin y gerente ven las de todo el equipo.
 
+### PWA (instalable en el teléfono)
+
+- **Manifest**: `src/app/manifest.ts` (convención nativa de Next.js — se sirve en `/manifest.webmanifest` y Next inyecta el `<link rel="manifest">` solo, sin tocar `layout.tsx`).
+- **Íconos**: generados con `npm run icons` (`scripts/generate-pwa-icons.mjs`, usa `sharp`) a partir del ícono ya existente (`src/app/icon.png`, 512×512 con fondo transparente) — produce `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (con zona de seguridad para Android) y `src/app/apple-icon.png` (180×180, aplanado sobre el beige de marca porque iOS no respeta transparencia). Vuelve a correr el script si cambia el logo.
+- **Service worker**: `public/sw.js` (registrado por `src/components/pwa/sw-register.tsx` en el layout raíz) — mínimo, solo lo necesario para que Chrome/Android consideren el sitio instalable; no implementa una app shell offline completa (esta app es inherentemente dependiente de datos en vivo — citas, disponibilidad, precios — cachear agresivamente arriesgaría mostrar información desactualizada).
+- **Botón "Descargar app"** (`src/components/pwa/install-app-button.tsx`, usado en el hero de la página principal): en Android/Chrome dispara el prompt nativo de instalación (`beforeinstallprompt`); en iOS Safari (que no tiene esa API) muestra instrucciones para "Compartir → Agregar a inicio". Se oculta solo si la app ya está instalada (`display-mode: standalone`) o si el navegador no soporta ninguna de las dos vías (ej. Safari/Firefox de escritorio).
+
 ### Arte de tratamientos, productos y profesionales
 
 Para no depender de fotos externas (enlaces rotos, licencias, hotlinking), el catálogo usa arte generado en el código (`TreatmentArt`, `ProfessionalAvatar`) con degradados e iconos dentro de la paleta de marca — reutilizado también para productos. En una segunda fase, sustituir `imageUrl`/`photoUrl` por URLs reales de fotografía de producto es un cambio acotado a esos componentes.
