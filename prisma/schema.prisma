@@ -73,7 +73,7 @@ model Customer {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments  Appointment[]
   notifications Notification[]
   sales         Sale[]
@@ -87,15 +87,17 @@ model Customer {
 // the same row rather than keeping a history, since only the latest signed
 // version is legally relevant for an active client.
 model ConsentForm {
-  id             String   @id @default(cuid())
-  customerId     String   @unique
-  fullName       String // typed signature
-  cedula         String   @default("")
-  acceptedPhotos Boolean  @default(false) // separate opt-in: use of before/after photos for marketing
-  signedAt       DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  customerId         String   @unique
+  fullName           String // typed signature
+  cedula             String   @default("")
+  acceptedPhotos     Boolean  @default(false) // separate opt-in: use of before/after photos for marketing
+  signedAt           DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  filledByEmployeeId String? // set when staff (recepción/profesional) fills this on the client's behalf; null when the customer signed it themselves from their dashboard
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  filledBy Professional? @relation(fields: [filledByEmployeeId], references: [id], onDelete: SetNull)
 
   @@map("consent_forms")
 }
@@ -108,7 +110,7 @@ model Service {
   id              String   @id @default(cuid())
   name            String
   slug            String   @unique
-  category        String   // "rostro" | "axilas" | "brazos" | "piernas" | "bikini" | "cuerpo-completo"
+  category        String // "rostro" | "axilas" | "brazos" | "piernas" | "bikini" | "cuerpo-completo"
   description     String
   durationMinutes Int
   price           Float
@@ -156,21 +158,21 @@ model Product {
 // ---------------------------------------------------------------------------
 
 model Professional {
-  id        String    @id @default(cuid())
-  userId    String?   @unique
+  id        String   @id @default(cuid())
+  userId    String?  @unique
   firstName String
   lastName  String
-  email     String?   @unique
-  phone     String    @default("")
-  cedula    String?   @unique // national ID (RD: "Cédula de identidad")
-  salary    Float     @default(0) // base salary used to prefill payroll payments
-  role      String    @default("professional") // "admin" | "manager" | "receptionist" | "professional"
-  specialty String    @default("")
-  bio       String    @default("")
+  email     String?  @unique
+  phone     String   @default("")
+  cedula    String?  @unique // national ID (RD: "Cédula de identidad")
+  salary    Float    @default(0) // base salary used to prefill payroll payments
+  role      String   @default("professional") // "admin" | "manager" | "receptionist" | "professional"
+  specialty String   @default("")
+  bio       String   @default("")
   photoUrl  String
-  active    Boolean   @default(true)
-  hireDate  DateTime  @default(now())
-  createdAt DateTime  @default(now())
+  active    Boolean  @default(true)
+  hireDate  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   user               User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   schedules          ProfessionalSchedule[]
@@ -180,19 +182,20 @@ model Professional {
   paymentsReceived   EmployeePayment[]      @relation("EmployeePaymentEmployee")
   paymentsProcessed  EmployeePayment[]      @relation("EmployeePaymentProcessedBy")
   cashSessions       CashSession[]
+  consentFormsFilled ConsentForm[]
 
   @@map("professionals")
 }
 
 // Recurring weekly working hours per professional.
 model ProfessionalSchedule {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   professionalId String
-  dayOfWeek      Int      // 0 = Sunday ... 6 = Saturday
-  startTime      String   // "09:00"
-  endTime        String   // "18:00"
-  breakStart     String?  // "13:00"
-  breakEnd       String?  // "14:00"
+  dayOfWeek      Int // 0 = Sunday ... 6 = Saturday
+  startTime      String // "09:00"
+  endTime        String // "18:00"
+  breakStart     String? // "13:00"
+  breakEnd       String? // "14:00"
 
   professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
@@ -221,8 +224,8 @@ model Appointment {
   customerId     String
   professionalId String
   date           DateTime // calendar date (midnight UTC)
-  startTime      String   // "10:00"
-  endTime        String   // "10:30"
+  startTime      String // "10:00"
+  endTime        String // "10:30"
   status         String   @default("confirmed") // "pending" | "confirmed" | "completed" | "cancelled" | "no_show"
   totalPrice     Float
   totalDuration  Int
@@ -245,9 +248,9 @@ model Appointment {
 
 // Join table: an appointment can bundle several services (e.g. axilas + bikini).
 model AppointmentService {
-  id            String @id @default(cuid())
-  appointmentId String
-  serviceId     String
+  id                String @id @default(cuid())
+  appointmentId     String
+  serviceId         String
   priceAtBooking    Float
   durationAtBooking Int
 
@@ -258,14 +261,14 @@ model AppointmentService {
 }
 
 model Payment {
-  id              String   @id @default(cuid())
-  appointmentId   String   @unique
-  amount          Float
-  depositAmount   Float    @default(0)
-  status          String   @default("pending") // "pending" | "paid" | "refunded" | "cancelled"
-  method          String   @default("pay_at_location") // "pay_at_location" | "card" | "cash"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  amount        Float
+  depositAmount Float    @default(0)
+  status        String   @default("pending") // "pending" | "paid" | "refunded" | "cancelled"
+  method        String   @default("pay_at_location") // "pay_at_location" | "card" | "cash"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
@@ -276,7 +279,7 @@ model Notification {
   id            String    @id @default(cuid())
   customerId    String
   appointmentId String?
-  type          String    // "booking_confirmation" | "reminder_24h" | "reminder_hours" | "cancellation" | "reschedule"
+  type          String // "booking_confirmation" | "reminder_24h" | "reminder_hours" | "cancellation" | "reschedule"
   channel       String    @default("email") // "email" | "whatsapp"
   status        String    @default("pending") // "pending" | "sent" | "failed"
   sentAt        DateTime?
@@ -301,9 +304,9 @@ model Notification {
 model NcfSequence {
   id         String   @id @default(cuid())
   ncfType    String   @unique // "B01" (crédito fiscal) | "B02" (consumo)
-  label      String   // "Crédito Fiscal" | "Consumo"
+  label      String // "Crédito Fiscal" | "Consumo"
   nextNumber Int      @default(1)
-  endNumber  Int      // authorized range end (DGII-issued)
+  endNumber  Int // authorized range end (DGII-issued)
   updatedAt  DateTime @updatedAt
 
   @@map("ncf_sequences")
@@ -342,13 +345,13 @@ model Sale {
 }
 
 model SaleItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   saleId    String
   itemType  String // "product" | "service"
   productId String?
   serviceId String?
   name      String // snapshot of the name at time of sale
-  quantity  Int    @default(1)
+  quantity  Int     @default(1)
   unitPrice Float
   lineTotal Float
 

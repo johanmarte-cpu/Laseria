@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, Receipt } from "lucide-react";
+import { Loader2, Receipt, FileSignature } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -190,6 +190,14 @@ export function AppointmentDetailModal({
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
+        <ButtonLink
+          href={`/admin/clientes/${appointment.customer.id}/consentimiento`}
+          variant="secondary"
+          className="flex-1"
+        >
+          <FileSignature className="h-4 w-4" strokeWidth={1.75} />
+          Consentimiento
+        </ButtonLink>
         {!isProfessionalView && (
           <ButtonLink
             href={`/admin/ventas/nueva?appointmentId=${appointment.id}`}

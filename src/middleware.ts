@@ -63,6 +63,14 @@ export default auth((req) => {
     if (nextUrl.pathname.startsWith("/admin/pagos/") && nextUrl.pathname !== "/admin/pagos/nuevo") {
       return NextResponse.next();
     }
+    // Cualquier rol de staff (incluido "professional", que normalmente no
+    // tiene acceso a la sección "customers") puede llenar/actualizar el
+    // consentimiento de un cliente al que está atendiendo — la autorización
+    // real ocurre en la API (requireStaff), esto solo evita el bloqueo por
+    // sección que aplicaría a la lista completa de /admin/clientes.
+    if (nextUrl.pathname.startsWith("/admin/clientes/") && nextUrl.pathname.endsWith("/consentimiento")) {
+      return NextResponse.next();
+    }
     const section = sectionFor(nextUrl.pathname);
     if (section && !canAccess(role, section)) {
       return NextResponse.redirect(new URL(staffHomeRoute(role), nextUrl));
