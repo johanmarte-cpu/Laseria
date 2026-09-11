@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Lasería brand palette */
+  --color-laseria-white: #ffffff;
+  --color-laseria-ink: #171717;
+  --color-laseria-beige: #f5f0ea;
+  --color-laseria-beige-dark: #ece3d8;
+  --color-laseria-nude: #e8d8cc;
+  --color-laseria-blush: #f3e5e5;
+  --color-laseria-gold: #c9a96e;
+  --color-laseria-gold-dark: #b3905a;
+  --color-laseria-ink-soft: #4a4744;
+  --color-laseria-ink-muted: #7a756f;
+  --color-laseria-line: #e6ddd2;
+
+  /* status colors used across dashboards */
+  --color-status-confirmed: #2f6b4f;
+  --color-status-pending: #b3872f;
+  --color-status-completed: #17608a;
+  --color-status-cancelled: #a13b3b;
+  --color-status-noshow: #6b6560;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-white: var(--color-laseria-white);
+  --color-ink: var(--color-laseria-ink);
+  --color-ink-soft: var(--color-laseria-ink-soft);
+  --color-ink-muted: var(--color-laseria-ink-muted);
+  --color-beige: var(--color-laseria-beige);
+  --color-beige-dark: var(--color-laseria-beige-dark);
+  --color-nude: var(--color-laseria-nude);
+  --color-blush: var(--color-laseria-blush);
+  --color-gold: var(--color-laseria-gold);
+  --color-gold-dark: var(--color-laseria-gold-dark);
+  --color-line: var(--color-laseria-line);
+
+  --color-status-confirmed: var(--color-status-confirmed);
+  --color-status-pending: var(--color-status-pending);
+  --color-status-completed: var(--color-status-completed);
+  --color-status-cancelled: var(--color-status-cancelled);
+  --color-status-noshow: var(--color-status-noshow);
+
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: var(--color-laseria-gold);
+  color: var(--color-laseria-white);
+}

@@ -1,0 +1,404 @@
+// Lasería — Prisma schema
+//
+// Datasource: PostgreSQL, hosted on Supabase.
+//
+// Supabase sits behind a connection pooler (Supavisor/PgBouncer), which is
+// required for serverless runtimes like Vercel (each function invocation
+// would otherwise open its own long-lived connection and exhaust Postgres'
+// connection limit). Prisma needs two different connection strings to work
+// with that setup:
+//   - `url` (DATABASE_URL)   — the POOLED connection (port 6543,
+//     `?pgbouncer=true`), used by the app at runtime for normal queries.
+//   - `directUrl` (DIRECT_URL) — the DIRECT connection (port 5432, no
+//     pooler), used only by `prisma migrate`/`db push` to create/alter
+//     tables — pooled connections don't support the session-level commands
+//     migrations need.
+// Both values come from Supabase: Project Settings → Database → Connection
+// string (toggle "Connection pooling" for DATABASE_URL, "Direct connection"
+// for DIRECT_URL). See README "Desplegar en Vercel + Supabase" for the full
+// setup steps.
+//
+// The schema itself (models, relations, field types) was designed to be
+// Postgres-compatible from day one — this file was originally developed
+// against SQLite for the zero-setup local MVP demo, and no SQLite-only
+// features were ever used, so this was a two-line datasource change.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth / people
+// ---------------------------------------------------------------------------
+
+// Role is modeled as a plain string rather than a Prisma/Postgres enum: this
+// project was originally developed against SQLite (which emulates enums
+// inconsistently across Prisma versions), and the app layer already
+// validates this with a Zod union (see src/lib/roles.ts, src/lib/validations)
+// — switching to a native Postgres enum now would be churn with no benefit.
+// "customer" | "admin" | "manager" | "receptionist" | "professional"
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  role              String    @default("customer")
+  resetToken        String?   @unique
+  resetTokenExpires DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  customer Customer?
+  // Every staff role (admin/manager/receptionist/professional) is a Professional
+  // record — see the note on that model for why "Professional" is the unified
+  // employee table rather than a separately named "Employee" model.
+  employee Professional?
+
+  @@map("users")
+}
+
+model Customer {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  firstName      String
+  lastName       String
+  phone          String
+  birthDate      DateTime?
+  marketingOptIn Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  notifications Notification[]
+  sales         Sale[]
+
+  @@map("customers")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  category        String   // "rostro" | "axilas" | "brazos" | "piernas" | "bikini" | "cuerpo-completo"
+  description     String
+  durationMinutes Int
+  price           Float
+  imageUrl        String
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointmentServices AppointmentService[]
+  saleItems           SaleItem[]
+
+  @@map("services")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String   @unique
+  category    String   @default("")
+  description String   @default("")
+  price       Float
+  cost        Float    @default(0)
+  stock       Int      @default(0)
+  imageUrl    String   @default("")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  saleItems SaleItem[]
+
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Employees (unified staff table)
+//
+// "Empleados" in the admin UI is this single table/list: every staff member
+// — admin, manager, receptionist, or treatment professional — is a row here,
+// distinguished by `role`. Only rows with role = "professional" get a
+// booking-relevant schedule and show up in the customer-facing booking flow;
+// the others use this table purely for their login + directory entry.
+// The Prisma model keeps the pre-existing name `Professional` (rather than a
+// rename to `Employee`) to avoid rewriting the already-large booking engine
+// that references professionalId throughout — see README for this trade-off.
+// ---------------------------------------------------------------------------
+
+model Professional {
+  id        String    @id @default(cuid())
+  userId    String?   @unique
+  firstName String
+  lastName  String
+  email     String?   @unique
+  phone     String    @default("")
+  cedula    String?   @unique // national ID (RD: "Cédula de identidad")
+  salary    Float     @default(0) // base salary used to prefill payroll payments
+  role      String    @default("professional") // "admin" | "manager" | "receptionist" | "professional"
+  specialty String    @default("")
+  bio       String    @default("")
+  photoUrl  String
+  active    Boolean   @default(true)
+  hireDate  DateTime  @default(now())
+  createdAt DateTime  @default(now())
+
+  user               User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  schedules          ProfessionalSchedule[]
+  timeOff            ProfessionalTimeOff[]
+  appointments       Appointment[]
+  sales              Sale[]
+  paymentsReceived   EmployeePayment[]      @relation("EmployeePaymentEmployee")
+  paymentsProcessed  EmployeePayment[]      @relation("EmployeePaymentProcessedBy")
+  cashSessions       CashSession[]
+
+  @@map("professionals")
+}
+
+// Recurring weekly working hours per professional.
+model ProfessionalSchedule {
+  id             String   @id @default(cuid())
+  professionalId String
+  dayOfWeek      Int      // 0 = Sunday ... 6 = Saturday
+  startTime      String   // "09:00"
+  endTime        String   // "18:00"
+  breakStart     String?  // "13:00"
+  breakEnd       String?  // "14:00"
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("professional_schedules")
+}
+
+// One-off unavailable dates (vacations, closures) for a professional.
+model ProfessionalTimeOff {
+  id             String   @id @default(cuid())
+  professionalId String
+  date           DateTime
+  reason         String?
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("professional_time_off")
+}
+
+// ---------------------------------------------------------------------------
+// Bookings
+// ---------------------------------------------------------------------------
+
+model Appointment {
+  id             String   @id @default(cuid())
+  bookingNumber  String   @unique
+  customerId     String
+  professionalId String
+  date           DateTime // calendar date (midnight UTC)
+  startTime      String   // "10:00"
+  endTime        String   // "10:30"
+  status         String   @default("confirmed") // "pending" | "confirmed" | "completed" | "cancelled" | "no_show"
+  totalPrice     Float
+  totalDuration  Int
+  notes          String   @default("")
+  wantsReminders Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer      Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  professional  Professional         @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  services      AppointmentService[]
+  payment       Payment?
+  notifications Notification[]
+  sale          Sale?
+
+  @@index([professionalId, date])
+  @@index([customerId])
+  @@map("appointments")
+}
+
+// Join table: an appointment can bundle several services (e.g. axilas + bikini).
+model AppointmentService {
+  id            String @id @default(cuid())
+  appointmentId String
+  serviceId     String
+  priceAtBooking    Float
+  durationAtBooking Int
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@map("appointment_services")
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  appointmentId   String   @unique
+  amount          Float
+  depositAmount   Float    @default(0)
+  status          String   @default("pending") // "pending" | "paid" | "refunded" | "cancelled"
+  method          String   @default("pay_at_location") // "pay_at_location" | "card" | "cash"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Notification {
+  id            String    @id @default(cuid())
+  customerId    String
+  appointmentId String?
+  type          String    // "booking_confirmation" | "reminder_24h" | "reminder_hours" | "cancellation" | "reschedule"
+  channel       String    @default("email") // "email" | "whatsapp"
+  status        String    @default("pending") // "pending" | "sent" | "failed"
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// Sales / Facturación (NCF — República Dominicana)
+//
+// This covers NCF *number generation and tracking* — the mechanic a front
+// desk needs to issue a valid-looking receipt day to day. It does not
+// implement DGII's electronic submission (e-CF / formats 606-607); see
+// README, Fase 2.
+// ---------------------------------------------------------------------------
+
+// One authorized numbering range per NCF type, e.g. B02 00000001-00000500.
+model NcfSequence {
+  id         String   @id @default(cuid())
+  ncfType    String   @unique // "B01" (crédito fiscal) | "B02" (consumo)
+  label      String   // "Crédito Fiscal" | "Consumo"
+  nextNumber Int      @default(1)
+  endNumber  Int      // authorized range end (DGII-issued)
+  updatedAt  DateTime @updatedAt
+
+  @@map("ncf_sequences")
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  saleNumber    String   @unique // internal sequential id, e.g. "VTA-00042"
+  ncf           String?  @unique // assigned fiscal receipt number, e.g. "B0200000001"
+  ncfType       String? // "B01" | "B02"
+  customerId    String?
+  customerName  String   @default("") // walk-in name when there's no account
+  customerRnc   String? // RNC/Cédula — required for B01 invoices
+  employeeId    String // staff member who processed the sale
+  appointmentId String?  @unique
+  subtotal      Float
+  taxRate       Float    @default(0.18) // ITBIS
+  taxAmount     Float
+  discount      Float    @default(0)
+  total         Float
+  status        String   @default("paid") // "paid" | "cancelled"
+  paymentMethod String   @default("cash") // "cash" | "card" | "transfer"
+  notes         String   @default("")
+  cashSessionId String? // the cashier's open caja session at the time of sale, if any
+  createdAt     DateTime @default(now())
+
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  employee    Professional @relation(fields: [employeeId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  cashSession CashSession? @relation(fields: [cashSessionId], references: [id])
+  items       SaleItem[]
+
+  @@index([createdAt])
+  @@index([cashSessionId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  saleId    String
+  itemType  String // "product" | "service"
+  productId String?
+  serviceId String?
+  name      String // snapshot of the name at time of sale
+  quantity  Int    @default(1)
+  unitPrice Float
+  lineTotal Float
+
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+  service Service? @relation(fields: [serviceId], references: [id])
+
+  @@map("sale_items")
+}
+
+// ---------------------------------------------------------------------------
+// Payroll — payments made to employees, each with a printable comprobante
+// (voucher). Restricted to admin/manager to create or cancel; an employee can
+// view (read-only) the vouchers issued to them from their own profile.
+// ---------------------------------------------------------------------------
+
+model EmployeePayment {
+  id            String   @id @default(cuid())
+  paymentNumber String   @unique // "COMP-00001"
+  employeeId    String
+  processedById String // admin/manager who registered the payment
+  concept       String   @default("salario") // "salario" | "bono" | "adelanto" | "otro"
+  periodStart   DateTime
+  periodEnd     DateTime
+  grossAmount   Float
+  deductions    Float    @default(0)
+  netAmount     Float
+  paymentMethod String   @default("transfer") // "cash" | "card" | "transfer"
+  status        String   @default("paid") // "paid" | "cancelled"
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+
+  employee    Professional @relation("EmployeePaymentEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  processedBy Professional @relation("EmployeePaymentProcessedBy", fields: [processedById], references: [id])
+
+  @@index([employeeId])
+  @@index([createdAt])
+  @@map("employee_payments")
+}
+
+// ---------------------------------------------------------------------------
+// Caja — a cashier's cash-drawer session ("apertura"/"cierre de caja"). Every
+// sale processed while a session is open is linked to it (Sale.cashSessionId)
+// so the closing report can total up exactly what was invoiced during that
+// shift. Closing computes expectedCash (openingAmount + cash sales) vs the
+// physically counted amount and emails the report — see src/lib/email.ts.
+// ---------------------------------------------------------------------------
+
+model CashSession {
+  id                String    @id @default(cuid())
+  sessionNumber     String    @unique // "CAJA-00001"
+  employeeId        String // cashier who opened it
+  openingAmount     Float     @default(0) // starting cash float
+  openingNotes      String    @default("")
+  openedAt          DateTime  @default(now())
+  closedAt          DateTime?
+  countedCash       Float? // physically counted at close
+  expectedCash      Float? // openingAmount + cash sales during the session
+  difference        Float? // countedCash - expectedCash (negative = short)
+  closingNotes      String    @default("")
+  status            String    @default("open") // "open" | "closed"
+  reportEmailStatus String    @default("pending") // "pending" | "sent" | "failed"
+  reportEmailTo     String    @default("")
+  createdAt         DateTime  @default(now())
+
+  employee Professional @relation(fields: [employeeId], references: [id])
+  sales    Sale[]
+
+  @@index([employeeId])
+  @@index([openedAt])
+  @@map("cash_sessions")
+}
