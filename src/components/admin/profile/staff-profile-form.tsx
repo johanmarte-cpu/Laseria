@@ -33,9 +33,10 @@ export function StaffProfileForm({ email, defaultValues }: { email: string; defa
       body: JSON.stringify(data),
     });
 
+    const resBody = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setServerError("No pudimos guardar tus cambios.");
+      setServerError(resBody.error ?? "No pudimos guardar tus cambios.");
       return;
     }
     setSuccess(true);
@@ -61,7 +62,7 @@ export function StaffProfileForm({ email, defaultValues }: { email: string; defa
       </div>
 
       <FormField label="Teléfono" htmlFor="sp-phone" error={errors.phone?.message}>
-        <Input id="sp-phone" type="tel" {...register("phone")} />
+        <Input id="sp-phone" type="tel" placeholder="809-555-4477" {...register("phone")} />
       </FormField>
 
       <Button type="submit" disabled={loading}>

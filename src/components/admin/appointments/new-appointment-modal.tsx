@@ -183,7 +183,7 @@ export function NewAppointmentModal({
                 onChange={(e) => setNewCustomer((s) => ({ ...s, email: e.target.value }))}
               />
               <Input
-                placeholder="Teléfono"
+                placeholder="Teléfono (809-555-4477)"
                 type="tel"
                 value={newCustomer.phone}
                 onChange={(e) => setNewCustomer((s) => ({ ...s, phone: e.target.value }))}

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/api-guards";
+import { NAME_REGEX, NAME_MESSAGE, DR_PHONE_REGEX, PHONE_MESSAGE } from "@/lib/validations";
 
 const profileSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
-  phone: z.string(),
+  firstName: z.string().trim().min(2, "Ingresa tu nombre").regex(NAME_REGEX, NAME_MESSAGE),
+  lastName: z.string().trim().min(2, "Ingresa tu apellido").regex(NAME_REGEX, NAME_MESSAGE),
+  phone: z.string().trim().regex(DR_PHONE_REGEX, PHONE_MESSAGE),
 });
 
 export async function GET() {
@@ -26,7 +27,7 @@ export async function PATCH(request: Request) {
   const parsed = profileSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos.", details: parsed.error.flatten() },
+      { error: parsed.error.issues[0]?.message ?? "Datos inválidos.", details: parsed.error.flatten() },
       { status: 400 }
     );
   }

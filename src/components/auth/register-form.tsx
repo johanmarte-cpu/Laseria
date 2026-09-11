@@ -73,7 +73,7 @@ export function RegisterForm() {
       </FormField>
 
       <FormField label="Teléfono" htmlFor="phone" error={errors.phone?.message}>
-        <Input id="phone" type="tel" autoComplete="tel" {...register("phone")} />
+        <Input id="phone" type="tel" autoComplete="tel" placeholder="809-555-4477" {...register("phone")} />
       </FormField>
 
       <div className="grid gap-5 sm:grid-cols-2">

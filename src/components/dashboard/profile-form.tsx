@@ -68,7 +68,7 @@ export function ProfileForm({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField label="Teléfono" htmlFor="p-phone" error={errors.phone?.message}>
-          <Input id="p-phone" type="tel" {...register("phone")} />
+          <Input id="p-phone" type="tel" placeholder="809-555-4477" {...register("phone")} />
         </FormField>
         <FormField label="Fecha de nacimiento" htmlFor="p-birthDate" optional error={errors.birthDate?.message}>
           <Input id="p-birthDate" type="date" {...register("birthDate")} />

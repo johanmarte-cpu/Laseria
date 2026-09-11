@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+// Letras (con acentos/ñ), espacios, apóstrofes y guiones únicamente — sin
+// dígitos ni etiquetas/caracteres HTML (`<`, `>`, etc.). Cada palabra debe
+// empezar con una letra.
+export const NAME_REGEX = /^\p{L}[\p{L}\p{M}'-]*(?:\s[\p{L}\p{M}'-]+)*$/u;
+export const NAME_MESSAGE = "Solo se permiten letras";
+
+// Teléfono dominicano: código de área 809, 829 u 849, con o sin +1 y con o
+// sin formato (espacios, guiones, paréntesis) — p. ej. "(809) 555-4477",
+// "+1 809 555 4477" u "8095554477".
+export const DR_PHONE_REGEX = /^(?:\+?1[\s.-]?)?\(?(?:809|829|849)\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+export const PHONE_MESSAGE = "Ingresa un teléfono dominicano válido (809, 829 u 849)";
+
 // Note: fields that back a react-hook-form + zodResolver form deliberately
 // avoid `.optional().default(...)` — with zod v4 that makes the resolver's
 // input type diverge from its output type, which @hookform/resolvers can't
@@ -10,10 +22,10 @@ import { z } from "zod";
 
 export const registerSchema = z
   .object({
-    firstName: z.string().min(2, "Ingresa tu nombre"),
-    lastName: z.string().min(2, "Ingresa tu apellido"),
-    email: z.string().email("Ingresa un email válido"),
-    phone: z.string().min(7, "Ingresa un teléfono válido"),
+    firstName: z.string().trim().min(2, "Ingresa tu nombre").regex(NAME_REGEX, NAME_MESSAGE),
+    lastName: z.string().trim().min(2, "Ingresa tu apellido").regex(NAME_REGEX, NAME_MESSAGE),
+    email: z.string().trim().email("Ingresa un email válido"),
+    phone: z.string().trim().regex(DR_PHONE_REGEX, PHONE_MESSAGE),
     password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
     confirmPassword: z.string(),
     marketingOptIn: z.boolean(),
@@ -26,17 +38,17 @@ export const registerSchema = z
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().email("Ingresa un email válido"),
+  email: z.string().trim().email("Ingresa un email válido"),
   password: z.string().min(1, "Ingresa tu contraseña"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const customerInfoSchema = z.object({
-  firstName: z.string().min(2, "Ingresa tu nombre"),
-  lastName: z.string().min(2, "Ingresa tu apellido"),
-  email: z.string().email("Ingresa un email válido"),
-  phone: z.string().min(7, "Ingresa un teléfono válido"),
+  firstName: z.string().trim().min(2, "Ingresa tu nombre").regex(NAME_REGEX, NAME_MESSAGE),
+  lastName: z.string().trim().min(2, "Ingresa tu apellido").regex(NAME_REGEX, NAME_MESSAGE),
+  email: z.string().trim().email("Ingresa un email válido"),
+  phone: z.string().trim().regex(DR_PHONE_REGEX, PHONE_MESSAGE),
   birthDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(500).optional().or(z.literal("")),
   wantsReminders: z.boolean(),
@@ -80,10 +92,10 @@ export type ProfessionalFormInput = z.infer<typeof professionalFormSchema>;
 // Unified "Empleados" form — covers every staff role. `specialty`/`bio` are
 // only meaningful (and only shown in the UI) when role === "professional".
 export const employeeFormSchema = z.object({
-  firstName: z.string().min(2, "Ingresa el nombre"),
-  lastName: z.string().min(2, "Ingresa el apellido"),
-  email: z.string().email("Ingresa un email válido"),
-  phone: z.string(),
+  firstName: z.string().trim().min(2, "Ingresa el nombre").regex(NAME_REGEX, NAME_MESSAGE),
+  lastName: z.string().trim().min(2, "Ingresa el apellido").regex(NAME_REGEX, NAME_MESSAGE),
+  email: z.string().trim().email("Ingresa un email válido"),
+  phone: z.string().trim().refine((v) => v === "" || DR_PHONE_REGEX.test(v), PHONE_MESSAGE),
   cedula: z.string(),
   salary: z.number().min(0),
   role: z.enum(["admin", "manager", "receptionist", "professional"]),
@@ -96,9 +108,9 @@ export const employeeFormSchema = z.object({
 export type EmployeeFormInput = z.infer<typeof employeeFormSchema>;
 
 export const profileUpdateSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
-  phone: z.string().min(7),
+  firstName: z.string().trim().min(2, "Ingresa tu nombre").regex(NAME_REGEX, NAME_MESSAGE),
+  lastName: z.string().trim().min(2, "Ingresa tu apellido").regex(NAME_REGEX, NAME_MESSAGE),
+  phone: z.string().trim().regex(DR_PHONE_REGEX, PHONE_MESSAGE),
   birthDate: z.string().optional().or(z.literal("")),
   marketingOptIn: z.boolean(),
 });
@@ -109,10 +121,10 @@ export const adminCreateAppointmentSchema = z.object({
   customerId: z.string().optional(),
   newCustomer: z
     .object({
-      firstName: z.string().min(2),
-      lastName: z.string().min(2),
-      email: z.string().email(),
-      phone: z.string().min(7),
+      firstName: z.string().trim().min(2, "Ingresa el nombre").regex(NAME_REGEX, NAME_MESSAGE),
+      lastName: z.string().trim().min(2, "Ingresa el apellido").regex(NAME_REGEX, NAME_MESSAGE),
+      email: z.string().trim().email("Ingresa un email válido"),
+      phone: z.string().trim().regex(DR_PHONE_REGEX, PHONE_MESSAGE),
     })
     .optional(),
   professionalId: z.string().min(1),
@@ -137,7 +149,7 @@ export const adminUpdateAppointmentSchema = z.object({
 export type AdminUpdateAppointmentInput = z.infer<typeof adminUpdateAppointmentSchema>;
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Ingresa un email válido"),
+  email: z.string().trim().email("Ingresa un email válido"),
 });
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
@@ -247,7 +259,7 @@ export type CloseCashSessionInput = z.infer<typeof closeCashSessionSchema>;
 
 export const signConsentSchema = z
   .object({
-    fullName: z.string().min(2, "Ingresa tu nombre completo"),
+    fullName: z.string().trim().min(2, "Ingresa tu nombre completo").regex(NAME_REGEX, NAME_MESSAGE),
     cedula: z.string().optional().default(""),
     acceptedTreatment: z.boolean(),
     acceptedPhotos: z.boolean(),

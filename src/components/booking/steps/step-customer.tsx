@@ -56,7 +56,13 @@ export function StepCustomer({
             <Input id="c-email" type="email" disabled={isLoggedIn} {...register("email")} />
           </FormField>
           <FormField label="Teléfono" htmlFor="c-phone" error={errors.phone?.message}>
-            <Input id="c-phone" type="tel" disabled={isLoggedIn} {...register("phone")} />
+            <Input
+              id="c-phone"
+              type="tel"
+              placeholder="809-555-4477"
+              disabled={isLoggedIn}
+              {...register("phone")}
+            />
           </FormField>
         </div>
 

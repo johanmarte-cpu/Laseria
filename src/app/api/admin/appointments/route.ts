@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   const parsed = adminCreateAppointmentSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Datos inválidos.", details: parsed.error.flatten() },
+      { error: parsed.error.issues[0]?.message ?? "Datos inválidos.", details: parsed.error.flatten() },
       { status: 400 }
     );
   }

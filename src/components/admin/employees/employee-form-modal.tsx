@@ -132,7 +132,7 @@ export function EmployeeFormModal({
 
         <div className="grid gap-5 sm:grid-cols-2">
           <FormField label="Teléfono" htmlFor="e-phone" optional error={errors.phone?.message}>
-            <Input id="e-phone" type="tel" {...register("phone")} />
+            <Input id="e-phone" type="tel" placeholder="809-555-4477" {...register("phone")} />
           </FormField>
           <FormField label="Cédula" htmlFor="e-cedula" optional error={errors.cedula?.message}>
             <Input id="e-cedula" placeholder="000-0000000-0" {...register("cedula")} />
