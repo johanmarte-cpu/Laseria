@@ -98,6 +98,13 @@ Si una clienta reserva sin haber iniciado sesión, el sistema crea automáticame
 - **Cierre**: el cajero cuenta el efectivo físico y lo compara contra el **efectivo esperado** (fondo inicial + ventas en efectivo del turno); el sistema calcula sobrante/faltante y lo deja registrado (`src/lib/cash-register.ts`). Solo puede haber una caja abierta por usuario a la vez.
 - **Reporte por correo**: al cerrar, se envía un email (vía [Resend](https://resend.com), `src/lib/email.ts`) con el detalle del turno — total facturado, desglose por método de pago, arqueo de efectivo y el listado de ventas — al correo configurado en `CASH_REPORT_EMAIL`. Requiere `RESEND_API_KEY` en `.env` (ver `.env.example`); **si no está configurada, la caja se cierra igual** y el reporte queda marcado como "no se pudo enviar" en pantalla y en la base de datos (`CashSession.reportEmailStatus`), sin bloquear el cierre.
 - Cada cajero solo ve/gestiona sus propias cajas en el historial; admin y gerente ven las de todo el equipo.
+- **Validación obligatoria**: `src/lib/sales.ts` (`createSale`) rechaza cualquier venta con `409` si el empleado no tiene una caja abierta — aplica a todo el flujo de facturación (POS, "Facturar cita" desde Citas), sin excepción por rol. El mensaje guía al cajero a `Caja → Abrir caja`.
+
+### Consentimiento informado (clientes)
+
+- **Formulario** (`/dashboard/consentimiento`, en el dashboard de la clienta): texto legal de consentimiento para depilación láser (procedimiento, riesgos, contraindicaciones, recomendaciones, protección de datos — `CONSENT_FORM_SECTIONS` en `src/lib/constants.ts`) + firma digital (nombre completo + cédula opcional + checkbox de aceptación obligatorio + checkbox opcional de autorización de fotos para marketing).
+- Se guarda un registro por cliente (`ConsentForm`, 1:1 con `Customer`) vía `POST /api/customer/consent`; firmar de nuevo actualiza el mismo registro (no se guarda historial de versiones — solo la última firma es la vigente). La clienta puede reimprimir su comprobante o actualizar la firma en cualquier momento desde la misma pantalla.
+- **Visibilidad para el staff**: la tabla de **Clientes** (`/admin/clientes`) muestra una columna "Consentimiento" con el estado (Firmado + fecha, o Pendiente) por cliente.
 
 ### PWA (instalable en el teléfono)
 

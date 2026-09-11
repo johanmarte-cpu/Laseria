@@ -77,6 +77,7 @@ export async function getAdminCustomers(query?: string) {
     include: {
       user: { select: { email: true } },
       appointments: { orderBy: { date: "desc" }, select: { date: true, status: true } },
+      consentForm: { select: { signedAt: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -95,6 +96,7 @@ export async function getAdminCustomers(query?: string) {
       lastVisit: past[0]?.date.toISOString() ?? null,
       nextAppointment:
         upcoming.sort((a, b) => a.date.getTime() - b.date.getTime())[0]?.date.toISOString() ?? null,
+      consentSignedAt: c.consentForm?.signedAt.toISOString() ?? null,
     };
   });
 }

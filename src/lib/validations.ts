@@ -244,3 +244,17 @@ export const closeCashSessionSchema = z.object({
 });
 
 export type CloseCashSessionInput = z.infer<typeof closeCashSessionSchema>;
+
+export const signConsentSchema = z
+  .object({
+    fullName: z.string().min(2, "Ingresa tu nombre completo"),
+    cedula: z.string().optional().default(""),
+    acceptedTreatment: z.boolean(),
+    acceptedPhotos: z.boolean(),
+  })
+  .refine((data) => data.acceptedTreatment === true, {
+    message: "Debes leer y aceptar el consentimiento para continuar",
+    path: ["acceptedTreatment"],
+  });
+
+export type SignConsentInput = z.infer<typeof signConsentSchema>;

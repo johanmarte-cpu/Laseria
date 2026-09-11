@@ -13,6 +13,23 @@ function generateSaleNumber() {
 }
 
 export async function createSale(input: CreateSaleInput, employeeId: string): Promise<SaleResult> {
+  // Every sale must belong to an open caja session — this is what makes the
+  // "cierre de caja" report (and its cash arqueo) trustworthy. Fetched once
+  // here and reused below instead of re-querying inside the transaction, so
+  // a sale can never be created with cashSessionId unset once this check
+  // has passed.
+  const openCashSession = await prisma.cashSession.findFirst({
+    where: { employeeId, status: "open" },
+    select: { id: true },
+  });
+  if (!openCashSession) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Debes abrir tu caja antes de registrar una venta. Ve a Caja → Abrir caja.",
+    };
+  }
+
   const ncfMeta = ncfTypeMeta(input.ncfType);
   if (ncfMeta.requiresRnc && !input.customerRnc?.trim()) {
     return { ok: false, status: 400, error: "El comprobante de Crédito Fiscal (B01) requiere el RNC del cliente." };
@@ -89,11 +106,6 @@ export async function createSale(input: CreateSaleInput, employeeId: string): Pr
         throw new Error(ncfResult.error);
       }
 
-      const openCashSession = await tx.cashSession.findFirst({
-        where: { employeeId, status: "open" },
-        select: { id: true },
-      });
-
       for (const line of lineItems) {
         if (line.itemType === "product" && line.productId) {
           await tx.product.update({
@@ -120,7 +132,7 @@ export async function createSale(input: CreateSaleInput, employeeId: string): Pr
           total,
           paymentMethod: input.paymentMethod,
           notes: input.notes ?? "",
-          cashSessionId: openCashSession?.id ?? null,
+          cashSessionId: openCashSession.id,
           items: {
             create: lineItems.map((l) => ({
               itemType: l.itemType,

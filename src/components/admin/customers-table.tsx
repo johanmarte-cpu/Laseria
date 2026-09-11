@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/form";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { AdminCustomer } from "@/components/admin/types";
 
 export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
@@ -33,7 +33,7 @@ export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
               <th className="px-5 py-3">Cliente</th>
@@ -41,12 +41,13 @@ export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
               <th className="px-5 py-3 text-center"># Citas</th>
               <th className="px-5 py-3">Última cita</th>
               <th className="px-5 py-3">Próxima cita</th>
+              <th className="px-5 py-3">Consentimiento</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-ink-muted">
+                <td colSpan={6} className="px-5 py-10 text-center text-ink-muted">
                   No encontramos clientes con esa búsqueda.
                 </td>
               </tr>
@@ -66,6 +67,18 @@ export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
                   </td>
                   <td className="px-5 py-4 text-ink-soft">
                     {c.nextAppointment ? formatDate(c.nextAppointment) : "—"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase",
+                        c.consentSignedAt
+                          ? "bg-status-confirmed/10 text-status-confirmed"
+                          : "bg-status-cancelled/10 text-status-cancelled"
+                      )}
+                    >
+                      {c.consentSignedAt ? `Firmado ${formatDate(c.consentSignedAt)}` : "Pendiente"}
+                    </span>
                   </td>
                 </tr>
               ))

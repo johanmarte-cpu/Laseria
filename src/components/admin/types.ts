@@ -138,4 +138,5 @@ export type AdminCustomer = {
   appointmentsCount: number;
   lastVisit: string | null;
   nextAppointment: string | null;
+  consentSignedAt: string | null;
 };

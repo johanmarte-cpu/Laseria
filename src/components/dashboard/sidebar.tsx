@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LayoutGrid, CalendarDays, CalendarPlus, History, UserRound, LogOut, X } from "lucide-react";
+import { LayoutGrid, CalendarDays, CalendarPlus, History, UserRound, FileSignature, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/dashboard/citas", label: "Mis citas", icon: CalendarDays },
   { href: "/reservar", label: "Reservar cita", icon: CalendarPlus },
   { href: "/dashboard/citas?tab=past", label: "Historial", icon: History },
+  { href: "/dashboard/consentimiento", label: "Consentimiento", icon: FileSignature },
   { href: "/dashboard/perfil", label: "Perfil", icon: UserRound },
 ];
 

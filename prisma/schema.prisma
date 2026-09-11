@@ -77,8 +77,27 @@ model Customer {
   appointments  Appointment[]
   notifications Notification[]
   sales         Sale[]
+  consentForm   ConsentForm?
 
   @@map("customers")
+}
+
+// Informed-consent waiver for laser hair removal — one per customer. Absence
+// of a row means "not signed"; signing again (e.g. updated info) overwrites
+// the same row rather than keeping a history, since only the latest signed
+// version is legally relevant for an active client.
+model ConsentForm {
+  id             String   @id @default(cuid())
+  customerId     String   @unique
+  fullName       String // typed signature
+  cedula         String   @default("")
+  acceptedPhotos Boolean  @default(false) // separate opt-in: use of before/after photos for marketing
+  signedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("consent_forms")
 }
 
 // ---------------------------------------------------------------------------
