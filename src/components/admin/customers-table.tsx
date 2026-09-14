@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, FileSignature } from "lucide-react";
+import { Search, FileSignature, History } from "lucide-react";
 import { Input } from "@/components/ui/form";
 import { cn, formatDate } from "@/lib/utils";
 import type { AdminCustomer } from "@/components/admin/types";
@@ -34,7 +34,7 @@ export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
-        <table className="w-full min-w-[960px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
               <th className="px-5 py-3">Cliente</th>
@@ -82,14 +82,23 @@ export function CustomersTable({ customers }: { customers: AdminCustomer[] }) {
                       {c.consentSignedAt ? `Firmado ${formatDate(c.consentSignedAt)}` : "Pendiente"}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-right">
-                    <Link
-                      href={`/admin/clientes/${c.id}/consentimiento`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-gold/50 hover:text-ink"
-                    >
-                      <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      Consentimiento
-                    </Link>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Link
+                        href={`/admin/clientes/${c.id}/historial`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-gold/50 hover:text-ink"
+                      >
+                        <History className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Historial
+                      </Link>
+                      <Link
+                        href={`/admin/clientes/${c.id}/consentimiento`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-gold/50 hover:text-ink"
+                      >
+                        <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Consentimiento
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, Receipt, FileSignature } from "lucide-react";
+import { Loader2, Receipt, FileSignature, History } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -46,7 +46,7 @@ export function AppointmentDetailModal({
     setError(null);
 
     const body = isProfessionalView
-      ? { status }
+      ? { ...(status !== appointment.status ? { status } : {}), notes }
       : {
           status,
           paymentStatus,
@@ -98,21 +98,36 @@ export function AppointmentDetailModal({
         </div>
 
         {isProfessionalView ? (
-          <div>
-            <Label htmlFor="status">Estado</Label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20"
-            >
-              {PROFESSIONAL_STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div>
+              <Label htmlFor="status">Estado</Label>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20"
+              >
+                {PROFESSIONAL_STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Notas de tratamiento</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Zonas tratadas, potencia usada, reacciones, recomendaciones para la próxima sesión..."
+              />
+              <p className="mt-1.5 text-xs text-ink-muted">
+                Queda guardado en el historial del cliente para que cualquier especialista lo consulte.
+              </p>
+            </div>
+          </>
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -190,6 +205,14 @@ export function AppointmentDetailModal({
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
+        <ButtonLink
+          href={`/admin/clientes/${appointment.customer.id}/historial`}
+          variant="secondary"
+          className="flex-1"
+        >
+          <History className="h-4 w-4" strokeWidth={1.75} />
+          Historial
+        </ButtonLink>
         <ButtonLink
           href={`/admin/clientes/${appointment.customer.id}/consentimiento`}
           variant="secondary"

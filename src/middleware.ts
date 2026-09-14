@@ -64,11 +64,14 @@ export default auth((req) => {
       return NextResponse.next();
     }
     // Cualquier rol de staff (incluido "professional", que normalmente no
-    // tiene acceso a la sección "customers") puede llenar/actualizar el
-    // consentimiento de un cliente al que está atendiendo — la autorización
-    // real ocurre en la API (requireStaff), esto solo evita el bloqueo por
-    // sección que aplicaría a la lista completa de /admin/clientes.
-    if (nextUrl.pathname.startsWith("/admin/clientes/") && nextUrl.pathname.endsWith("/consentimiento")) {
+    // tiene acceso a la sección "customers") puede llenar el consentimiento
+    // o consultar el historial de tratamientos de un cliente al que está
+    // atendiendo — la autorización real ocurre en la API (requireStaff),
+    // esto solo evita el bloqueo por sección de /admin/clientes en general.
+    if (
+      nextUrl.pathname.startsWith("/admin/clientes/") &&
+      (nextUrl.pathname.endsWith("/consentimiento") || nextUrl.pathname.endsWith("/historial"))
+    ) {
       return NextResponse.next();
     }
     const section = sectionFor(nextUrl.pathname);

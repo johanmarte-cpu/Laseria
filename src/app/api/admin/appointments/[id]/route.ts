@@ -20,22 +20,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!appointment) return NextResponse.json({ error: "Cita no encontrada." }, { status: 404 });
 
   // A professional may only mark their own appointments as completed/no-show
-  // — no reschedule, no editing other staff's agenda.
+  // and write treatment follow-up notes — no reschedule, no editing other
+  // staff's agenda, no touching payment status.
   if (guard.role === "professional") {
     if (appointment.professionalId !== guard.employeeId) {
       return NextResponse.json({ error: "Acceso no autorizado." }, { status: 403 });
     }
-    const onlyStatusChange =
-      (data.status === "completed" || data.status === "no_show") &&
-      !data.date &&
-      !data.startTime &&
-      !data.professionalId &&
-      data.notes === undefined &&
-      !data.paymentStatus;
-    if (!onlyStatusChange) {
-      return NextResponse.json({ error: "Solo puedes marcar tus citas como completadas o no asistidas." }, { status: 403 });
+    const statusOk =
+      data.status === undefined ||
+      data.status === appointment.status ||
+      data.status === "completed" ||
+      data.status === "no_show";
+    const onlyStatusAndNotes = statusOk && !data.date && !data.startTime && !data.professionalId && !data.paymentStatus;
+    if (!onlyStatusAndNotes) {
+      return NextResponse.json(
+        { error: "Solo puedes actualizar el estado y las notas de tratamiento de tus citas." },
+        { status: 403 }
+      );
     }
-    await prisma.appointment.update({ where: { id }, data: { status: data.status } });
+    const updateData: Record<string, unknown> = {};
+    if (data.status) updateData.status = data.status;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    await prisma.appointment.update({ where: { id }, data: updateData });
     const updated = await prisma.appointment.findUnique({
       where: { id },
       include: { customer: true, professional: true, services: { include: { service: true } }, payment: true },
